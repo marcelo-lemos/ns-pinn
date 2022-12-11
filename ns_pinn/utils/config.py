@@ -41,6 +41,7 @@ class NSPINNConfig:
     dataset: str
     seed: int
     num_workers: int
+    prod_mode: bool
     neptune: NeptuneConfig
     model: ModelConfig
     training: TrainingConfig

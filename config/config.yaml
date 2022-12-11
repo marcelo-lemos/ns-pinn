@@ -17,6 +17,8 @@ model:
     learning_rate: 1e-3
   data_loss_coef: 1
   physics_loss_coef: 1
+  rho: 1e3
+  mu: 1e-3
 
 training:
   epochs: 500

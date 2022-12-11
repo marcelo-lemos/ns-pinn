@@ -1,4 +1,5 @@
 import logging
+import os
 
 import hydra
 from hydra.core.config_store import ConfigStore
@@ -8,6 +9,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 import torchmetrics
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.neptune import NeptuneLogger
 
 from models.components.mlp import MLP
@@ -20,13 +22,17 @@ from utils.dataset import NavierStokes2DDataset
 def main(cfg: NSPINNConfig) -> None:
     logger = logging.getLogger(__name__)
 
-    logger.info('Instantiating neptune logger...')
-    neptune_logger = NeptuneLogger(
-        project=f'{cfg.neptune.workspace}/{cfg.neptune.project}',
-        prefix=cfg.neptune.prefix
-    )
-    logger.info('Logging hyperparameters...')
-    neptune_logger.experiment['parameters'] = cfg
+    if cfg.prod_mode:
+        logger.info('Instantiating neptune logger...')
+        pl_logger = NeptuneLogger(
+            project=f'{cfg.neptune.workspace}/{cfg.neptune.project}',
+            prefix=cfg.neptune.prefix
+        )
+        logger.info('Logging hyperparameters...')
+        pl_logger.experiment['parameters'] = cfg
+    else:
+        logger.info('Instantiating CSV logger...')
+        pl_logger = CSVLogger(os.getcwd())
 
     logger.info('Configuring metrics...')
     val_metrics = torchmetrics.MetricCollection({
@@ -51,7 +57,8 @@ def main(cfg: NSPINNConfig) -> None:
             activation = nn.Tanh
     net = MLP(cfg.model.nn.layers, activation, cfg.model.nn.dropout)
 
-    optimizer = torch.optim.Adam(net.parameters(), lr=cfg.model.optimizer.learning_rate)
+    optimizer = torch.optim.Adam(
+        net.parameters(), lr=cfg.model.optimizer.learning_rate)
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, cfg.training.epochs)
 
@@ -84,7 +91,7 @@ def main(cfg: NSPINNConfig) -> None:
 
     logger.info('Starting training...')
     trainer = pl.Trainer(
-        logger=neptune_logger,
+        logger=pl_logger,
         max_epochs=cfg.training.epochs,
         accelerator='auto'
     )
