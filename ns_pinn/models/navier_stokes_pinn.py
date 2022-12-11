@@ -36,7 +36,7 @@ class NavierStokes2DPINN(pl.LightningModule):
     def data_loss(self, prediction: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         return F.mse_loss(prediction, target)
 
-    def physics_loss(self, prediction: torch.Tensor, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor, rho: float, mu: float) -> torch.Tensor:
+    def physics_loss(self, prediction: torch.Tensor, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         u, v, p = prediction.split(1, dim=1)
 
         u_x = grad(u, x, grad_outputs=torch.ones_like(x), create_graph=True)[0]
@@ -60,8 +60,8 @@ class NavierStokes2DPINN(pl.LightningModule):
         v_yy = grad(v_y, y, grad_outputs=torch.ones_like(x),
                     create_graph=True)[0]
 
-        e1 = (rho*(u_t + u*u_x + v*u_y) + p_x) - (mu*(u_xx + u_yy))
-        e2 = (rho*(v_t + u*v_x + v*v_y) + p_y) - (mu*(v_xx + v_yy))
+        e1 = (self.rho*(u_t + u*u_x + v*u_y) + p_x) - (self.mu*(u_xx + u_yy))
+        e2 = (self.rho*(v_t + u*v_x + v*v_y) + p_y) - (self.mu*(v_xx + v_yy))
         e3 = u_x + v_y
         residuals = torch.cat((e1, e2, e3))
 
@@ -77,7 +77,7 @@ class NavierStokes2DPINN(pl.LightningModule):
         sample = torch.cat((x, y, t), dim=1)
         predictions = self.net(sample)
         d_loss = self.data_loss(predictions[:, 0:2], labels[:, 0:2])
-        p_loss = self.physics_loss(predictions, x, y, t, self.rho, self.mu)
+        p_loss = self.physics_loss(predictions, x, y, t)
         final_loss = (d_loss*self.data_loss_coef) + \
             (p_loss*self.physics_loss_coef)
         self.log('training/data_loss', d_loss)
