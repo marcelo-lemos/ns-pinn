@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "ns-pinn"
+version = "0.1.0"
+description = ""
+authors = ["Marcelo Lemos <marceloharrylemos@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+torch = "^1.13.0"
+numpy = "^1.23.5"
+neptune-client = "^0.16.14"
+pytorch-lightning = "^1.8.3"
+torchmetrics = "^0.11.0"
+hydra-core = "^1.3.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
