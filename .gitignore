@@ -175,8 +175,14 @@ cython_debug/
 # Neptune
 .neptune/
 
+# Weights and Biases
+wandb/
+
 # Hydra
 outputs/
 
 # Data
 data/
+
+# Pytorch Lightning logs
+lightning_logs/

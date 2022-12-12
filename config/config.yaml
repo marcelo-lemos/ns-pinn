@@ -1,25 +1,9 @@
+defaults:
+  - mlops: wandb
+  - model: mlp_adam
+  - training: single_epoch
+
 dataset: data/Oseen_PIV_ppp01out0_PINN.csv
 seed: None
-num_workers: 12
-prod_mode: False
-
-neptune:
-  workspace: piv-br-usp
-  project: PINN
-  prefix: metrics
-
-model:
-  nn:
-    layers: [3, 64, 64, 64, 64, 64, 64, 64, 3]
-    activation: tanh
-    dropout: 0.0
-  optimizer:
-    learning_rate: 1e-3
-  data_loss_coef: 1
-  physics_loss_coef: 1
-  rho: 1e3
-  mu: 1e-3
-
-training:
-  epochs: 500
-  batch_size: 256
+num_workers: 8
+prod_mode: True

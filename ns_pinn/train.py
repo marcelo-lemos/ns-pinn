@@ -3,7 +3,7 @@ import os
 
 import hydra
 from hydra.core.config_store import ConfigStore
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
@@ -11,6 +11,7 @@ import torchmetrics
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.neptune import NeptuneLogger
+from pytorch_lightning.loggers.wandb import WandbLogger
 
 from models.components.mlp import MLP
 from models.navier_stokes_pinn import NavierStokes2DPINN
@@ -22,14 +23,27 @@ from utils.dataset import NavierStokes2DDataset
 def main(cfg: NSPINNConfig) -> None:
     logger = logging.getLogger(__name__)
 
+    logger.info('Starting pytorch lightning logger...')
     if cfg.prod_mode:
-        logger.info('Instantiating neptune logger...')
-        pl_logger = NeptuneLogger(
-            project=f'{cfg.neptune.workspace}/{cfg.neptune.project}',
-            prefix=cfg.neptune.prefix
-        )
-        logger.info('Logging hyperparameters...')
-        pl_logger.experiment['parameters'] = cfg
+        match cfg.mlops.platform:
+            case 'neptune':
+                logger.info('Instantiating neptune logger...')
+                pl_logger = NeptuneLogger(
+                    project=f'{cfg.mlops.workspace}/{cfg.mlops.project}',
+                    prefix=''
+                )
+                logger.info('Logging hyperparameters...')
+                pl_logger.experiment['parameters'] = OmegaConf.to_container(
+                    cfg, resolve=True, throw_on_missing=True)
+            case 'wandb':
+                logger.info('Instantiating wandb logger...')
+                pl_logger = WandbLogger(project=cfg.mlops.project)
+                pl_logger.experiment.config.update(OmegaConf.to_container(
+                    cfg, resolve=True, throw_on_missing=True))
+            case _:
+                logger.critical(
+                    f'Unsupported MLOps platform: {cfg.mlops.platform}')
+                exit()
     else:
         logger.info('Instantiating CSV logger...')
         pl_logger = CSVLogger(os.getcwd())
@@ -52,13 +66,13 @@ def main(cfg: NSPINNConfig) -> None:
         case 'tanh':
             activation = nn.Tanh
         case _:
-            logger.error(
-                f'Unsuported activation {cfg.model.nn.activation}. Defaulting to Tanh.')
-            activation = nn.Tanh
+            logger.critical(
+                f'Unsuported activation: {cfg.model.nn.activation}')
+            exit()
     net = MLP(cfg.model.nn.layers, activation, cfg.model.nn.dropout)
 
     optimizer = torch.optim.Adam(
-        net.parameters(), lr=cfg.model.optimizer.learning_rate)
+        net.parameters(), lr=cfg.model.optimizer.learning_rate, weight_decay=cfg.model.optimizer.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, cfg.training.epochs)
 
@@ -96,7 +110,7 @@ def main(cfg: NSPINNConfig) -> None:
         accelerator='auto'
     )
     trainer.fit(ns_2d, train_dataloader, val_dataloader)
-    logger.info('Finished!')
+    logger.info('Finished training.')
 
 
 if __name__ == '__main__':

@@ -80,9 +80,9 @@ class NavierStokes2DPINN(pl.LightningModule):
         p_loss = self.physics_loss(predictions, x, y, t)
         final_loss = (d_loss*self.data_loss_coef) + \
             (p_loss*self.physics_loss_coef)
-        self.log('training/data_loss', d_loss)
-        self.log('training/physics_loss', p_loss)
-        self.log('training/final_loss', final_loss)
+        self.log('train/data_loss', d_loss)
+        self.log('train/physics_loss', p_loss)
+        self.log('train/final_loss', final_loss)
         return final_loss
 
     def validation_step(self, batch: torch.Tensor, batch_idx: int) -> None:

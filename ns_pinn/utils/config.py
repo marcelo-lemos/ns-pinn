@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 
+from omegaconf import MISSING
+
 
 @dataclass
-class NeptuneConfig:
+class MLOpsConfig:
+    platform: str
     workspace: str
     project: str
     prefix: str
@@ -18,6 +21,7 @@ class NNConfig:
 @dataclass
 class OptimizerConfig:
     learning_rate: float
+    weight_decay: float
 
 
 @dataclass
@@ -42,6 +46,6 @@ class NSPINNConfig:
     seed: int
     num_workers: int
     prod_mode: bool
-    neptune: NeptuneConfig
+    mlops: MLOpsConfig
     model: ModelConfig
     training: TrainingConfig

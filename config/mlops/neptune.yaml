@@ -1,0 +1,4 @@
+platform: neptune
+workspace: ???
+project: ns-pinn
+prefix: metrics

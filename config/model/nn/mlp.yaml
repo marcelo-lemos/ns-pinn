@@ -1,0 +1,4 @@
+architecture: mlp
+layers: [3, 64, 64, 64, 64, 64, 64, 64, 3]
+activation: tanh
+dropout: 0.0
