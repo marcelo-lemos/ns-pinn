@@ -8,7 +8,6 @@ class MLOpsConfig:
     platform: str
     workspace: str
     project: str
-    prefix: str
 
 
 @dataclass

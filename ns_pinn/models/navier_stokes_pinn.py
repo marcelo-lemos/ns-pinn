@@ -97,4 +97,4 @@ class NavierStokes2DPINN(pl.LightningModule):
         self.log_dict(output)
 
     def forward(self, batch: torch.Tensor) -> torch.Tensor:
-        return self.net.forward(batch)
+        return self.net(batch)
