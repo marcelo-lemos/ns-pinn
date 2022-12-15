@@ -37,7 +37,7 @@ def main(cfg: NSPINNConfig) -> None:
                     cfg, resolve=True, throw_on_missing=True)
             case 'wandb':
                 logger.info('Instantiating wandb logger...')
-                pl_logger = WandbLogger(project=cfg.mlops.project)
+                pl_logger = WandbLogger(project=cfg.mlops.project, entity=cfg.mlops.workspace)
                 pl_logger.experiment.config.update(OmegaConf.to_container(
                     cfg, resolve=True, throw_on_missing=True))
             case _:
@@ -107,7 +107,8 @@ def main(cfg: NSPINNConfig) -> None:
     trainer = pl.Trainer(
         logger=pl_logger,
         max_epochs=cfg.training.epochs,
-        accelerator='auto'
+        accelerator='gpu',
+        devices=1
     )
     trainer.fit(ns_2d, train_dataloader, val_dataloader)
     logger.info('Finished training.')
