@@ -90,7 +90,7 @@ class NavierStokes2DPINN(pl.LightningModule):
         sample = sample.type(torch.float32)
         labels = labels.type(torch.float32)
         predictions = self.net(sample)
-        self.val_metrics.update(predictions[:, 0:2], labels)
+        self.val_metrics.update(predictions, labels)
 
     def validation_epoch_end(self, outputs) -> None:
         output = self.val_metrics.compute()

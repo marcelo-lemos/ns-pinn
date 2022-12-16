@@ -18,6 +18,12 @@ class MLP(nn.Module):
             in_dim = out_dim
         layers.append(nn.Linear(in_dim, layer_sizes[-1]))
         self.net = nn.Sequential(*layers)
+        self.net.apply(self._init_layer)
+
+    def _init_layer(self, layer: nn.Module):
+        if isinstance(layer, nn.Linear):
+            nn.init.xavier_uniform_(layer.weight)
+            nn.init.zeros_(layer.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
