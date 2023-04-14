@@ -31,6 +31,7 @@ class ModelConfig:
     physics_loss_coef: float
     rho: float
     mu: float
+    checkpoint_path: str
 
 
 @dataclass

@@ -1,6 +1,7 @@
 import logging
 import os
 
+import numpy as np
 import hydra
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
@@ -23,28 +24,9 @@ from utils.dataset import NavierStokes2DDataset
 def main(cfg: NSPINNConfig) -> None:
     logger = logging.getLogger(__name__)
 
-    logger.info('Starting pytorch lightning logger...')
-    if cfg.prod_mode:
-        match cfg.mlops.platform:
-            case 'neptune':
-                logger.info('Instantiating neptune logger...')
-                pl_logger = NeptuneLogger(
-                    project=f'{cfg.mlops.workspace}/{cfg.mlops.project}',
-                    prefix=''
-                )
-            case 'wandb':
-                logger.info('Instantiating wandb logger...')
-                pl_logger = WandbLogger(project=cfg.mlops.project)
-            case _:
-                logger.critical(
-                    f'Unsupported MLOps platform: {cfg.mlops.platform}')
-                exit()
-    else:
-        logger.info('Instantiating CSV logger...')
-        pl_logger = CSVLogger(os.getcwd())
-
     logger.info('Instantiating model...')
-    ns_2d = NavierStokes2DPINN.load_from_checkpoint('')
+    ns_2d = NavierStokes2DPINN.load_from_checkpoint(
+        cfg.model.checkpoint_path)
     ns_2d.eval()
 
     logger.info('Loading dataset...')
@@ -56,10 +38,14 @@ def main(cfg: NSPINNConfig) -> None:
         num_workers=cfg.num_workers
     )
 
-    for batch_idx, batch in enumerate(dataloader):
-        X, Y = batch
-        predictions = ns_2d(X)
-        print(predictions)
+    trainer = pl.Trainer(
+        accelerator='gpu',
+        devices=1
+    )
+    predictions = trainer.predict(ns_2d, dataloader)
+    predictions = torch.cat(predictions)
+    predictions = predictions.numpy(force=True)
+    np.savetxt("predictions.csv", predictions, delimiter=",")
 
 
 if __name__ == '__main__':

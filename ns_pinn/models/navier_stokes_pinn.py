@@ -1,28 +1,53 @@
-from typing import Union
+from typing import Callable, Union
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import grad
-from torchmetrics import MetricCollection
+from torchmetrics import MeanAbsoluteError, MeanAbsolutePercentageError, MetricCollection, MeanSquaredError
 import pytorch_lightning as pl
+
+from models.components.mlp import MLP
 
 
 class NavierStokes2DPINN(pl.LightningModule):
     def __init__(self,
-                 net: nn.Module,
-                 optimizer: torch.optim.Optimizer,
-                 val_metrics: MetricCollection,
-                 lr_scheduler: Union[torch.optim.lr_scheduler._LRScheduler, None] = None,
+                 layers: list[int],
+                 activation: str,
+                 dropout: float,
+                 learning_rate: float,
+                 weight_decay: float,
+                 training_epochs: int,
                  data_loss_coef: float = 1,
                  physics_loss_coef: float = 1,
                  rho: float = 1e3,
                  mu: float = 1e-3) -> None:
         super().__init__()
-        self.net = net
-        self.optim = optimizer
-        self.scheduler = lr_scheduler
-        self.val_metrics = val_metrics
+        self.save_hyperparameters()
+        match activation:
+            case 'hardswish':
+                activation_module = nn.Hardswish
+            case 'relu':
+                activation_module = nn.ReLU
+            case 'silu':
+                activation_module = nn.SiLU
+            case 'tanh':
+                activation_module = nn.Tanh
+            case _:
+                # logger.critical(
+                #     f'Unsuported activation: {cfg.model.nn.activation}')
+                exit()
+        self.net = MLP(layers, activation_module, dropout)
+        self.optim = torch.optim.Adam(
+            self.net.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            self.optim, training_epochs)
+        self.mse = MeanSquaredError()
+        self.val_metrics = MetricCollection({
+            'MAE': MeanAbsoluteError(),
+            'MAPE': MeanAbsolutePercentageError(),
+            'MSE': MeanSquaredError()
+        }, prefix='validation/')
         self.data_loss_coef = data_loss_coef
         self.physics_loss_coef = physics_loss_coef
         self.rho = rho
@@ -76,11 +101,11 @@ class NavierStokes2DPINN(pl.LightningModule):
         x, y, t = sample.split(1, dim=1)
         sample = torch.cat((x, y, t), dim=1)
         predictions = self.net(sample)
-        d_loss = self.data_loss(predictions[:, 0:2], labels[:, 0:2])
+        d_loss = self.mse(predictions[:, 0:2], labels[:, 0:2])
         p_loss = self.physics_loss(predictions, x, y, t)
         final_loss = (d_loss*self.data_loss_coef) + \
             (p_loss*self.physics_loss_coef)
-        self.log('train/data_loss', d_loss)
+        self.log('train/data_loss', self.mse)
         self.log('train/physics_loss', p_loss)
         self.log('train/final_loss', final_loss)
         return final_loss
@@ -96,5 +121,12 @@ class NavierStokes2DPINN(pl.LightningModule):
         output = self.val_metrics.compute()
         self.log_dict(output)
 
-    def forward(self, batch: torch.Tensor) -> torch.Tensor:
-        return self.net(batch)
+    def predict_step(self, batch: torch.Tensor, batch_idx: int):
+        sample, labels = batch
+        sample = sample.type(torch.float32)
+        labels = labels.type(torch.float32)
+        return self.net(sample)
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        X = X.type(torch.float32)
+        return self.net(X)
