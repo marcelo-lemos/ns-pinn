@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 
 COPY . /app/
 
-ENTRYPOINT ["python", "ns_pinn/train.py"]
+ENTRYPOINT ["python", "ns_pinn/train_and_predict.py"]

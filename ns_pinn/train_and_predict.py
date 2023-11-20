@@ -91,6 +91,13 @@ def main(cfg: NSPINNConfig) -> None:
     trainer.fit(ns_2d, train_dataloader, val_dataloader)
     logger.info('Finished training.')
 
+    logger.info('Starting predicting...')
+    predictions = trainer.predict(ns_2d, val_dataloader)
+    predictions = torch.cat(predictions)
+    predictions = predictions.numpy(force=True)
+    np.savetxt("predictions.csv", predictions, delimiter=",")
+    logger.info('Finished predicting.')
+
 
 if __name__ == '__main__':
     cs = ConfigStore.instance()
