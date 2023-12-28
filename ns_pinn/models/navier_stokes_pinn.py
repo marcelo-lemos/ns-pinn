@@ -40,8 +40,8 @@ class NavierStokes2DPINN(pl.LightningModule):
         self.net = MLP(layers, activation_module, dropout)
         self.optim = torch.optim.Adam(
             self.net.parameters(), lr=learning_rate, weight_decay=weight_decay)
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.optim, training_epochs)
+        # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #     self.optim, training_epochs)
         self.mse = MeanSquaredError()
         self.val_metrics = MetricCollection({
             'MAE': MeanAbsoluteError(),
