@@ -95,7 +95,7 @@ def main(cfg: NSPINNConfig) -> None:
     predictions = trainer.predict(ns_2d, val_dataloader)
     predictions = torch.cat(predictions)
     predictions = predictions.numpy(force=True)
-    np.savetxt("predictions.csv", predictions, delimiter=",")
+    np.savetxt(f'{data_path}-predictions.csv', predictions, delimiter=",")
     logger.info('Finished predicting.')
 
 
