@@ -67,8 +67,6 @@ def main(cfg: NSPINNConfig) -> None:
         logger=lightning_logger,
         max_epochs=cfg.training.epochs,
         accelerator='gpu',
-        devices=1,
-        log_every_n_steps=1
         enable_progress_bar=False
     )
     trainer.fit(ns_2d, train_dataloader, val_dataloader)
