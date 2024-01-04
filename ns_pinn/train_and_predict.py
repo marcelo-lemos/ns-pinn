@@ -6,13 +6,9 @@ import hydra
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, random_split
-import torchmetrics
-import pytorch_lightning as pl
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.loggers.neptune import NeptuneLogger
-from pytorch_lightning.loggers.wandb import WandbLogger
+from torch.utils.data import DataLoader
+import lightning as L
+from lightning.pytorch.loggers import CSVLogger, WandbLogger
 
 from models.components.mlp import MLP
 from models.navier_stokes_pinn import NavierStokes2DPINN
@@ -24,31 +20,16 @@ from utils.dataset import NavierStokes2DDataset
 def main(cfg: NSPINNConfig) -> None:
     logger = logging.getLogger(__name__)
 
-    logger.info('Starting pytorch lightning logger...')
+    logger.info('Starting lightning logger...')
     if cfg.prod_mode:
-        match cfg.mlops.platform:
-            case 'neptune':
-                logger.info('Instantiating neptune logger...')
-                pl_logger = NeptuneLogger(
-                    project=f'{cfg.mlops.workspace}/{cfg.mlops.project}',
-                    prefix=''
-                )
-                logger.info('Logging hyperparameters...')
-                pl_logger.experiment['parameters'] = OmegaConf.to_container(
-                    cfg, resolve=True, throw_on_missing=True)
-            case 'wandb':
-                logger.info('Instantiating wandb logger...')
-                pl_logger = WandbLogger(
-                    project=cfg.mlops.project, entity=cfg.mlops.workspace)
-                pl_logger.experiment.config.update(OmegaConf.to_container(
-                    cfg, resolve=True, throw_on_missing=True))
-            case _:
-                logger.critical(
-                    f'Unsupported MLOps platform: {cfg.mlops.platform}')
-                exit()
+        logger.info('Instantiating wandb logger...')
+        lightning_logger = WandbLogger(
+            project=cfg.mlops.project, entity=cfg.mlops.workspace)
+        lightning_logger.experiment.config.update(OmegaConf.to_container(
+            cfg, resolve=True, throw_on_missing=True))
     else:
         logger.info('Instantiating CSV logger...')
-        pl_logger = CSVLogger(os.getcwd())
+        lightning_logger = CSVLogger(os.getcwd())
 
     logger.info('Instantiating model...')
     ns_2d = NavierStokes2DPINN(
@@ -71,7 +52,8 @@ def main(cfg: NSPINNConfig) -> None:
         dataset,
         batch_size=cfg.training.batch_size,
         shuffle=True,
-        num_workers=cfg.num_workers
+        num_workers=cfg.num_workers,
+        pin_memory=True
     )
     val_dataloader = DataLoader(
         dataset,
@@ -81,12 +63,13 @@ def main(cfg: NSPINNConfig) -> None:
     )
 
     logger.info('Starting training...')
-    trainer = pl.Trainer(
-        logger=pl_logger,
+    trainer = L.Trainer(
+        logger=lightning_logger,
         max_epochs=cfg.training.epochs,
         accelerator='gpu',
         devices=1,
-        enable_progress_bar=False
+        log_every_n_steps=1
+        # enable_progress_bar=False
     )
     trainer.fit(ns_2d, train_dataloader, val_dataloader)
     logger.info('Finished training.')
@@ -95,7 +78,8 @@ def main(cfg: NSPINNConfig) -> None:
     predictions = trainer.predict(ns_2d, val_dataloader)
     predictions = torch.cat(predictions)
     predictions = predictions.numpy(force=True)
-    np.savetxt(f'{data_path}-predictions.csv', predictions, delimiter=",")
+    path_no_ext = os.path.splitext(data_path)[0]
+    np.savetxt(f'{path_no_ext}-predictions.csv', predictions, delimiter=",")
     logger.info('Finished predicting.')
 
 

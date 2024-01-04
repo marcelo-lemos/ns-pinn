@@ -5,7 +5,6 @@ from omegaconf import MISSING
 
 @dataclass
 class MLOpsConfig:
-    platform: str
     workspace: str
     project: str
 
