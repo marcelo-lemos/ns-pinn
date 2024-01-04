@@ -19,6 +19,7 @@ class NNConfig:
 @dataclass
 class OptimizerConfig:
     learning_rate: float
+    learning_rate_decay: float
     weight_decay: float
 
 

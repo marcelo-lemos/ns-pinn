@@ -38,8 +38,8 @@ def main(cfg: NSPINNConfig) -> None:
         activation=cfg.model.nn.activation,
         dropout=cfg.model.nn.dropout,
         learning_rate=cfg.model.optimizer.learning_rate,
+        lr_decay=cfg.model.optimizer.learning_rate_decay,
         weight_decay=cfg.model.optimizer.weight_decay,
-        training_epochs=cfg.training.epochs,
         data_loss_coef=cfg.model.data_loss_coef,
         physics_loss_coef=cfg.model.physics_loss_coef,
         rho=cfg.model.rho,
@@ -59,8 +59,9 @@ def main(cfg: NSPINNConfig) -> None:
     val_dataloader = DataLoader(
         dataset,
         batch_size=cfg.training.batch_size,
+        shuffle=False,
         num_workers=cfg.num_workers,
-        shuffle=False
+        pin_memory=True
     )
 
     logger.info('Starting training...')

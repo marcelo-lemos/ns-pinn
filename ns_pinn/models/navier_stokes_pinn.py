@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import grad
+from torch.optim.lr_scheduler import LambdaLR
 from torchmetrics import MetricCollection
 from torchmetrics.regression import MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError
 import lightning as L
@@ -17,8 +18,8 @@ class NavierStokes2DPINN(L.LightningModule):
                  activation: str,
                  dropout: float,
                  learning_rate: float,
+                 lr_decay: float,
                  weight_decay: float,
-                 training_epochs: int,
                  data_loss_coef: float = 1,
                  physics_loss_coef: float = 1,
                  rho: float = 1e3,
@@ -50,9 +51,14 @@ class NavierStokes2DPINN(L.LightningModule):
         self.physics_loss_coef = physics_loss_coef
         self.rho = rho
         self.mu = mu
+        self.lr_decay = lr_decay
 
     def configure_optimizers(self):
-        return self.optim
+        lr_scheduler = {
+            'scheduler': LambdaLR(self.optim, lr_lambda=lambda epoch: self.lr_decay ** epoch),
+            'name': 'train/learning_rate'
+        }
+        return [self.optim], [lr_scheduler]
 
     def data_loss(self, prediction: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         return F.mse_loss(prediction, target)
