@@ -8,6 +8,7 @@ from omegaconf import OmegaConf
 import torch
 from torch.utils.data import DataLoader
 import lightning as L
+from lightning.pytorch.callbacks import LearningRateMonitor
 from lightning.pytorch.loggers import CSVLogger, WandbLogger
 
 from models.components.mlp import MLP
@@ -63,11 +64,13 @@ def main(cfg: NSPINNConfig) -> None:
     )
 
     logger.info('Starting training...')
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = L.Trainer(
         logger=lightning_logger,
         max_epochs=cfg.training.epochs,
         accelerator='gpu',
-        enable_progress_bar=False
+        enable_progress_bar=False,
+        callbacks=[lr_monitor]
     )
     trainer.fit(ns_2d, train_dataloader, val_dataloader)
     logger.info('Finished training.')
