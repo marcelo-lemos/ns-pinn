@@ -69,7 +69,7 @@ def main(cfg: NSPINNConfig) -> None:
         accelerator='gpu',
         devices=1,
         log_every_n_steps=1
-        # enable_progress_bar=False
+        enable_progress_bar=False
     )
     trainer.fit(ns_2d, train_dataloader, val_dataloader)
     logger.info('Finished training.')

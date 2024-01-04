@@ -1,4 +1,4 @@
-FROM python:3.11-bookworm as python-base
+FROM python:3.11-slim-bookworm as python-base
 
     # Python
 ENV PYTHONUNBUFFERED=1 \
