@@ -4,7 +4,9 @@ defaults:
   - model: mlp_adam
   - training: single_epoch
 
-dataset: data/Oseen_PIV_ppp01out0_PINN.csv
+dataset: ???
+dataset_size: ???
 seed: None
 num_workers: 8
+validation_interval: 10
 prod_mode: True

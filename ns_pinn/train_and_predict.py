@@ -48,19 +48,21 @@ def main(cfg: NSPINNConfig) -> None:
 
     logger.info('Loading dataset...')
     data_path = hydra.utils.to_absolute_path(cfg.dataset)
-    dataset = NavierStokes2DDataset(data_path)
+    dataset = NavierStokes2DDataset(data_path, cfg.dataset_size, cfg.training.batch_size)
     train_dataloader = DataLoader(
         dataset,
-        batch_size=cfg.training.batch_size,
+        batch_size=None,
         shuffle=True,
         num_workers=cfg.num_workers,
+        persistent_workers=True,
         pin_memory=True
     )
     val_dataloader = DataLoader(
         dataset,
-        batch_size=cfg.training.batch_size,
+        batch_size=None,
         shuffle=False,
         num_workers=cfg.num_workers,
+        persistent_workers=True,
         pin_memory=True
     )
 
@@ -69,6 +71,7 @@ def main(cfg: NSPINNConfig) -> None:
     trainer = L.Trainer(
         logger=lightning_logger,
         max_epochs=cfg.training.epochs,
+        check_val_every_n_epoch=cfg.validation_interval,
         accelerator='gpu',
         enable_progress_bar=False,
         callbacks=[lr_monitor]

@@ -94,7 +94,7 @@ class NavierStokes2DPINN(L.LightningModule):
         y.requires_grad_(True)
         t.requires_grad_(True)
         data = torch.cat((x, y, t), dim=1)
-        targets = torch.cat((u, v), dim=1) 
+        targets = torch.cat((u, v), dim=1)
         predictions = self.net(data)
         d_loss = self.data_mse(predictions[:, 0:2].contiguous(), targets)
         u_hat, v_hat, p_hat = predictions.split(1, dim=1)
