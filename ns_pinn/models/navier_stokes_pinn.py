@@ -89,7 +89,7 @@ class NavierStokes2DPINN(L.LightningModule):
         return self.physics_mse(residuals, torch.zeros_like(residuals))
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
-        x, y, t, u, v = batch
+        x, y, t, u, v, _ = batch
         x.requires_grad_(True)
         y.requires_grad_(True)
         t.requires_grad_(True)
@@ -107,11 +107,11 @@ class NavierStokes2DPINN(L.LightningModule):
         return final_loss
 
     def validation_step(self, batch: torch.Tensor, batch_idx: int) -> None:
-        x, y, t, u, v = batch
+        x, y, t, u, v, p = batch
         data = torch.cat((x, y, t), dim=1)
-        targets = torch.cat((u, v), dim=1)
+        targets = torch.cat((u, v, p), dim=1)
         predictions = self.net(data)
-        self.val_metrics.update(predictions[:, 0:2].contiguous(), targets)
+        self.val_metrics.update(predictions, targets)
 
     def on_validation_epoch_end(self) -> None:
         output = self.val_metrics.compute()
@@ -119,6 +119,6 @@ class NavierStokes2DPINN(L.LightningModule):
         self.val_metrics.reset()
 
     def predict_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
-        x, y, t, u, v = batch
+        x, y, t, _, _, _ = batch
         data = torch.cat((x, y, t), dim=1)
         return self.net(data)

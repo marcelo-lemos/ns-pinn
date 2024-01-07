@@ -17,7 +17,9 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_VIRTUALENVS_CREATE=false \
     \
     # this is where our requirements + virtual environment will live
-    VIRTUAL_ENV="/venv"
+    VIRTUAL_ENV="/venv" \
+    \
+    WANDB_SILENT=true
 
 # prepend poetry and venv to path
 ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"

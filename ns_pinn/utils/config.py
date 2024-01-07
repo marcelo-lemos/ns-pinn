@@ -43,7 +43,6 @@ class TrainingConfig:
 @dataclass
 class NSPINNConfig:
     dataset: str
-    dataset_size: int
     validation_interval: int
     seed: int
     num_workers: int

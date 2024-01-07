@@ -14,7 +14,8 @@ from lightning.pytorch.loggers import CSVLogger, WandbLogger
 from models.components.mlp import MLP
 from models.navier_stokes_pinn import NavierStokes2DPINN
 from utils.config import NSPINNConfig
-from utils.dataset import NavierStokes2DDataset
+from utils.data import NavierStokes2DDataModule
+from utils.csv_prediction_writer import CSVPredictionWriter
 
 
 @hydra.main(version_base=None, config_path='../config', config_name='config.yaml')
@@ -46,45 +47,32 @@ def main(cfg: NSPINNConfig) -> None:
         mu=cfg.model.mu
     )
 
-    logger.info('Loading dataset...')
+    logger.info('Configuring datasets...')
     data_path = hydra.utils.to_absolute_path(cfg.dataset)
-    dataset = NavierStokes2DDataset(data_path, cfg.dataset_size, cfg.training.batch_size)
-    train_dataloader = DataLoader(
-        dataset,
-        batch_size=None,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        persistent_workers=True,
-        pin_memory=True
-    )
-    val_dataloader = DataLoader(
-        dataset,
-        batch_size=None,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        persistent_workers=True,
-        pin_memory=True
-    )
+    datamodule = NavierStokes2DDataModule(data_path, cfg.training.batch_size, cfg.num_workers)
+
+    logger.info('Creating callbacks...')
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    path_no_ext = os.path.splitext(data_path)[0]
+    prediction_writer = CSVPredictionWriter(f'{path_no_ext}-predictions.csv', 'epoch')
 
     logger.info('Starting training...')
-    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    
     trainer = L.Trainer(
+        accelerator='gpu',
+        precision='16-mixed',
         logger=lightning_logger,
+        callbacks=[lr_monitor, prediction_writer],
         max_epochs=cfg.training.epochs,
         check_val_every_n_epoch=cfg.validation_interval,
-        accelerator='gpu',
         enable_progress_bar=False,
-        callbacks=[lr_monitor]
+        # profiler='simple',
     )
-    trainer.fit(ns_2d, train_dataloader, val_dataloader)
+    trainer.fit(ns_2d, datamodule=datamodule)
     logger.info('Finished training.')
 
     logger.info('Starting predicting...')
-    predictions = trainer.predict(ns_2d, val_dataloader)
-    predictions = torch.cat(predictions)
-    predictions = predictions.numpy(force=True)
-    path_no_ext = os.path.splitext(data_path)[0]
-    np.savetxt(f'{path_no_ext}-predictions.csv', predictions, delimiter=",")
+    trainer.predict(ns_2d, datamodule=datamodule, return_predictions=False)
     logger.info('Finished predicting.')
 
 

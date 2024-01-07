@@ -5,7 +5,6 @@ defaults:
   - training: single_epoch
 
 dataset: ???
-dataset_size: ???
 seed: None
 num_workers: 8
 validation_interval: 10
