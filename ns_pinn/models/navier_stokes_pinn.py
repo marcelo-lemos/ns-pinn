@@ -64,22 +64,22 @@ class NavierStokes2DPINN(L.LightningModule):
         return F.mse_loss(prediction, target)
 
     def physics_loss(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor, u: torch.Tensor, v: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
-        u_x = grad(u, x, grad_outputs=torch.ones_like(u), create_graph=True)[0]
-        u_y = grad(u, y, grad_outputs=torch.ones_like(u), create_graph=True)[0]
-        u_t = grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
+        u_x = grad(u, x, grad_outputs=torch.ones_like(u), retain_graph=True, create_graph=True)[0]
+        u_y = grad(u, y, grad_outputs=torch.ones_like(u), retain_graph=True, create_graph=True)[0]
+        u_t = grad(u, t, grad_outputs=torch.ones_like(u), retain_graph=True, create_graph=True)[0]
 
-        v_x = grad(v, x, grad_outputs=torch.ones_like(v), create_graph=True)[0]
-        v_y = grad(v, y, grad_outputs=torch.ones_like(v), create_graph=True)[0]
-        v_t = grad(v, t, grad_outputs=torch.ones_like(v), create_graph=True)[0]
+        v_x = grad(v, x, grad_outputs=torch.ones_like(v), retain_graph=True, create_graph=True)[0]
+        v_y = grad(v, y, grad_outputs=torch.ones_like(v), retain_graph=True, create_graph=True)[0]
+        v_t = grad(v, t, grad_outputs=torch.ones_like(v), retain_graph=True, create_graph=True)[0]
 
-        p_x = grad(p, x, grad_outputs=torch.ones_like(p), create_graph=True)[0]
-        p_y = grad(p, y, grad_outputs=torch.ones_like(p), create_graph=True)[0]
+        p_x = grad(p, x, grad_outputs=torch.ones_like(p), retain_graph=True, create_graph=True)[0]
+        p_y = grad(p, y, grad_outputs=torch.ones_like(p), retain_graph=True, create_graph=True)[0]
 
-        u_xx = grad(u_x, x, grad_outputs=torch.ones_like(u_x), create_graph=True)[0]
-        u_yy = grad(u_y, y, grad_outputs=torch.ones_like(u_y), create_graph=True)[0]
+        u_xx = grad(u_x, x, grad_outputs=torch.ones_like(u_x), retain_graph=True, create_graph=True)[0]
+        u_yy = grad(u_y, y, grad_outputs=torch.ones_like(u_y), retain_graph=True, create_graph=True)[0]
 
-        v_xx = grad(v_x, x, grad_outputs=torch.ones_like(v_x), create_graph=True)[0]
-        v_yy = grad(v_y, y, grad_outputs=torch.ones_like(v_y), create_graph=True)[0]
+        v_xx = grad(v_x, x, grad_outputs=torch.ones_like(v_x), retain_graph=True, create_graph=True)[0]
+        v_yy = grad(v_y, y, grad_outputs=torch.ones_like(v_y), retain_graph=True, create_graph=True)[0]
 
         e1 = (self.rho*(u_t + u*u_x + v*u_y) + p_x) - (self.mu*(u_xx + u_yy))
         e2 = (self.rho*(v_t + u*v_x + v*v_y) + p_y) - (self.mu*(v_xx + v_yy))
