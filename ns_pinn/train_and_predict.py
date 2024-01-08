@@ -33,9 +33,6 @@ def main(cfg: NSPINNConfig) -> None:
         logger.info('Instantiating CSV logger...')
         lightning_logger = CSVLogger(os.getcwd())
 
-    # Enable low-precision matrix multiplication for better performance
-    torch.set_float32_matmul_precision('high')
-
     logger.info('Instantiating model...')
     ns_2d = NavierStokes2DPINN(
         layers=cfg.model.nn.layers,
