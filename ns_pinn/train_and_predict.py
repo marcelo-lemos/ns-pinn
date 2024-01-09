@@ -10,12 +10,14 @@ from torch.utils.data import DataLoader
 import lightning as L
 from lightning.pytorch.callbacks import LearningRateMonitor
 from lightning.pytorch.loggers import CSVLogger, WandbLogger
+import wandb
 
 from models.components.mlp import MLP
 from models.navier_stokes_pinn import NavierStokes2DPINN
 from utils.config import NSPINNConfig
 from utils.data import NavierStokes2DDataModule
 from utils.csv_prediction_writer import CSVPredictionWriter
+from utils.plot import MakePlotCallback
 
 
 @hydra.main(version_base=None, config_path='../config', config_name='config.yaml')
@@ -54,14 +56,16 @@ def main(cfg: NSPINNConfig) -> None:
     logger.info('Creating callbacks...')
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     path_no_ext = os.path.splitext(data_path)[0]
-    prediction_writer = CSVPredictionWriter(f'{path_no_ext}-predictions.csv', 'epoch')
+    predictions_path = f'{path_no_ext}-predictions.csv'
+    prediction_writer = CSVPredictionWriter(predictions_path, 'epoch')
+    plot_callback = MakePlotCallback(data_path, predictions_path, "pyplot_results.html")
 
     logger.info('Starting training...')
     
     trainer = L.Trainer(
         accelerator='gpu',
         logger=lightning_logger,
-        callbacks=[lr_monitor, prediction_writer],
+        callbacks=[lr_monitor, prediction_writer, plot_callback],
         max_epochs=cfg.training.epochs,
         check_val_every_n_epoch=cfg.validation_interval,
         enable_progress_bar=False,
@@ -72,6 +76,8 @@ def main(cfg: NSPINNConfig) -> None:
 
     logger.info('Starting predicting...')
     trainer.predict(ns_2d, datamodule=datamodule, return_predictions=False)
+    if cfg.prod_mode:
+        lightning_logger.experiment.log({'results_plot': wandb.Html("pyplot_results.html")})
     logger.info('Finished predicting.')
 
 
